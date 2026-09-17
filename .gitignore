@@ -2,6 +2,7 @@
 .server.pid
 .server.log
 .server.err.log
+.render.service.id
 
 node_modules/
 npm-debug.log*
