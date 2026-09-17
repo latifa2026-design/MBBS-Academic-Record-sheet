@@ -1,0 +1,9 @@
+# Runtime files (recreated automatically when the server runs)
+.server.pid
+.server.log
+.server.err.log
+
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db

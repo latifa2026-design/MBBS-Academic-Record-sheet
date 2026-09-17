@@ -1,0 +1,17 @@
+{
+  "name": "mbbs-academic-record-sheet",
+  "version": "1.0.0",
+  "description": "Academic record sheet for 1st & 2nd year MBBS (Physiology): pending items, card finals, term finals and attendance. Node.js backend + Google Sheets (Apps Script) database.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "mbbs",
+    "physiology",
+    "academic-record",
+    "google-sheets"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}

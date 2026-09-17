@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MBBS Academic Record Sheet | Physiology Department</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">&#129658;</div>
+    <div>
+      <h1>MBBS Academic Record Sheet</h1>
+      <p>Physiology Department &middot; 1st &amp; 2nd Year &middot; Cards &middot; Terms &middot; Attendance</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="dbStatus" class="status-dot offline">&#9679; connecting&hellip;</span>
+    <button id="btnRefresh" class="btn ghost" title="Reload all data from the Google Sheet">&#10227; Refresh</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="dashboard">&#128202; Dashboard</button>
+  <button class="tab" data-tab="students">&#128100; Students</button>
+  <button class="tab" data-tab="pending">&#128203; Pending Items</button>
+  <button class="tab" data-tab="cardfinal">&#128221; Card Final</button>
+  <button class="tab" data-tab="termfinal">&#127942; Term Final</button>
+  <button class="tab" data-tab="retake">&#128260; Term Final Re-take</button>
+  <button class="tab" data-tab="attendance">&#128197; Attendance</button>
+</nav>
+
+<main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="tab-panel active" id="tab-dashboard">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Students academic record</h2>
+        <span class="mini">click a row to open the student's item list</span>
+      </div>
+      <div class="table-wrap">
+        <table id="dashPendingTable">
+          <thead><tr><th>Roll</th><th>Name</th><th>Year</th><th>Pending Items</th><th>Card final</th><th>Term final</th><th>Lecture</th><th>Tutorial</th><th>Practical</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Attendance alerts (below 75%)</h2></div>
+      <div class="table-wrap">
+        <table id="dashAttTable">
+          <thead><tr><th>Roll</th><th>Name</th><th>Term</th><th>Lecture</th><th>Tutorial</th><th>Practical</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STUDENTS ============ -->
+  <section class="tab-panel" id="tab-students">
+    <div class="panel">
+      <div class="panel-head"><h2 id="studentFormTitle">&#10133; Add student</h2></div>
+      <form id="studentForm" class="form-grid" autocomplete="off">
+        <label>Roll / ID<input id="stRoll" required placeholder="e.g. 2026015" /></label>
+        <label>Name<input id="stName" required placeholder="Full name" /></label>
+        <label>Year
+          <select id="stYear"><option>1st Year</option><option>2nd Year</option></select>
+        </label>
+        <label>Session / Batch<input id="stSession" placeholder="e.g. 2025-26" /></label>
+        <div class="form-actions">
+          <button class="btn primary" type="submit" id="studentSubmit">+ Add student</button>
+          <button class="btn ghost hidden" type="button" id="studentCancel">Cancel edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>All students <span class="mini" id="studentCount"></span></h2>
+        <div class="head-tools">
+          <div class="year-filter" id="yearFilter" title="Filter students by year">
+            <button class="btn sm primary" type="button" data-year="All">All</button>
+            <button class="btn sm" type="button" data-year="1st Year">1st Year</button>
+            <button class="btn sm" type="button" data-year="2nd Year">2nd Year</button>
+          </div>
+          <input id="studentSearch" class="search" placeholder="&#128269; Search roll, name, year or session&hellip;" />
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="studentsTable">
+          <thead><tr><th>Roll</th><th>Name</th><th>Year</th><th>Pending Items</th><th>Session</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PENDING ITEMS ============ -->
+  <section class="tab-panel" id="tab-pending">
+    <div class="panel controls">
+      <div class="control-row">
+        <label>Student <select id="pendingStudent"></select></label>
+        <label>Show
+          <select id="pendingFilter">
+            <option>All</option><option>Pending</option><option>Done</option><option>Exempted</option>
+          </select>
+        </label>
+        <span class="legend">
+          <span class="chip mini-legend pending"><span class="chip-no">!</span>Pending</span>
+          <span class="chip mini-legend done"><span class="chip-no">&#10003;</span>Done</span>
+          <span class="chip mini-legend exempted"><span class="chip-no">E</span>Exempted</span>
+          <span class="mini">click an item to change status</span>
+        </span>
+        <button class="btn ghost sm" id="btnReseed" title="Create any missing item rows for this student">&#8635; Re-seed missing items</button>
+      </div>
+      <div class="summary" id="pendingSummary"></div>
+    </div>
+    <div id="pendingCards"></div>
+  </section>
+
+  <!-- ============ CARD FINAL ============ -->
+  <section class="tab-panel" id="tab-cardfinal">
+    <div class="panel controls">
+      <div class="control-row"><label>Student <select id="cardStudent"></select></label></div>
+    </div>
+    <div id="cardFinalForms" class="cards-grid"></div>
+    <div class="panel">
+      <div class="panel-head"><h2>Saved card final results</h2></div>
+      <div class="table-wrap">
+        <table id="cardFinalTable">
+          <thead><tr><th>Card</th><th>Subject</th><th>Date</th><th>Marks</th><th>%</th><th>Grade</th><th>Remarks</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TERM FINAL ============ -->
+  <section class="tab-panel" id="tab-termfinal">
+    <div class="panel controls">
+      <div class="control-row"><label>Student <select id="termStudent"></select></label></div>
+    </div>
+    <div id="termFinalForms" class="cards-grid"></div>
+    <div class="panel">
+      <div class="panel-head"><h2>Saved term final results</h2></div>
+      <div class="table-wrap">
+        <table id="termFinalTable">
+          <thead><tr><th>Term</th><th>Date</th><th>Written</th><th>Oral</th><th>Practical</th><th>Total</th><th>%</th><th>Result</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TERM FINAL RE-TAKE ============ -->
+  <section class="tab-panel" id="tab-retake">
+    <div class="panel controls">
+      <div class="control-row">
+        <label>Student <select id="retakeStudent"></select></label>
+        <span class="mini">re-take exams are stored separately from the regular term finals</span>
+      </div>
+    </div>
+    <div id="retakeFinalForms" class="cards-grid"></div>
+    <div class="panel">
+      <div class="panel-head"><h2>Saved re-take results</h2></div>
+      <div class="table-wrap">
+        <table id="retakeFinalTable">
+          <thead><tr><th>Term</th><th>Date</th><th>Written</th><th>Oral</th><th>Practical</th><th>Total</th><th>%</th><th>Result</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ATTENDANCE ============ -->
+  <section class="tab-panel" id="tab-attendance">
+    <div class="panel controls">
+      <div class="control-row">
+        <label>Student <select id="attStudent"></select></label>
+        <span class="mini">requirement: 75% &mdash; percentages turn red below it</span>
+      </div>
+    </div>
+    <div id="attendanceForms" class="cards-grid"></div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<!-- In-page confirm dialog (replaces native confirm(), which some embedded
+     browsers silently block — that made the Delete button appear dead) -->
+<div id="confirmModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Please confirm</h3>
+    <p id="confirmMsg"></p>
+    <div class="modal-actions">
+      <button id="confirmCancel" class="btn ghost" type="button">Cancel</button>
+      <button id="confirmOk" class="btn danger" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
+
