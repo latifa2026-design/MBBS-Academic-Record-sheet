@@ -18,6 +18,7 @@
 
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
@@ -167,6 +168,77 @@ async function callAppsScript(payload) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Sign-in gate (login screen)                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Credentials come from config.js (LOGIN_ID / LOGIN_PASSWORD) and can be
+ * overridden with the LOGIN_ID / LOGIN_PASSWORD environment variables.
+ * Sessions are kept in memory: after a server restart (or SESSION_HOURS
+ * after sign-in) every client must sign in again.
+ */
+const SESSION_HOURS = 12;
+const LOGIN_MAX_FAILS = 8;                    // failed attempts per IP …
+const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000;  // … within this window
+
+const sessions = new Map();   // token -> expiresAt (ms)
+const loginFails = new Map(); // ip -> { count, first }
+
+function safeEqual_(a, b) {
+  /* Hash both sides to a fixed length before comparing — timingSafeEqual
+     throws on unequal lengths, which would leak whether the ID or the
+     password had the wrong length. */
+  const ha = crypto.createHash('sha256').update(String(a == null ? '' : a), 'utf8').digest();
+  const hb = crypto.createHash('sha256').update(String(b == null ? '' : b), 'utf8').digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+function sessionToken_(req) {
+  return String(req.headers['x-auth-token'] || '');
+}
+
+function validSession_(req) {
+  const tok = sessionToken_(req);
+  if (!tok) return false;
+  const exp = sessions.get(tok);
+  if (!exp) return false;
+  if (Date.now() > exp) { sessions.delete(tok); return false; }
+  return true;
+}
+
+function pruneLoginFails_(now) {
+  loginFails.forEach((v, ip) => {
+    if (now - v.first > LOGIN_FAIL_WINDOW_MS) loginFails.delete(ip);
+  });
+}
+
+async function handleLogin(req, res) {
+  const ip = (req.socket && req.socket.remoteAddress) || '?';
+  const now = Date.now();
+  pruneLoginFails_(now);
+  const fails = loginFails.get(ip);
+  if (fails && fails.count >= LOGIN_MAX_FAILS) {
+    const waitMin = Math.max(1, Math.ceil((LOGIN_FAIL_WINDOW_MS - (now - fails.first)) / 60000));
+    return sendJson(res, 429, { ok: false, error: 'Too many failed attempts. Try again in about ' + waitMin + ' minute(s).' });
+  }
+  const body = await readBody(req);
+  const id = String(body.id || '').trim();
+  const password = String(body.password || '');
+  if (safeEqual_(id, config.LOGIN_ID) && safeEqual_(password, config.LOGIN_PASSWORD)) {
+    loginFails.delete(ip);
+    const token = crypto.randomBytes(24).toString('hex');
+    sessions.set(token, now + SESSION_HOURS * 3600 * 1000);
+    console.log('[auth] sign-in OK from ' + ip);
+    return sendJson(res, 200, { ok: true, data: { token: token, expiresInHours: SESSION_HOURS } });
+  }
+  const rec = fails || { count: 0, first: now };
+  rec.count += 1;
+  loginFails.set(ip, rec);
+  console.log('[auth] failed sign-in (' + rec.count + ') from ' + ip);
+  return sendJson(res, 401, { ok: false, error: 'Wrong ID or password.' });
+}
+
+/* ------------------------------------------------------------------ */
 /*  Small HTTP helpers                                                */
 /* ------------------------------------------------------------------ */
 
@@ -204,6 +276,21 @@ function readBody(req) {
 async function handleApi(req, res, pathname) {
   if (pathname === '/api/health') {
     return sendJson(res, 200, { ok: true, configured: isConfigured(), node: process.version });
+  }
+
+  /* ---- sign-in gate: everything below requires a valid session ---- */
+  if (pathname === '/api/login') {
+    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
+    try { return await handleLogin(req, res); }
+    catch (err) { return sendJson(res, 500, { ok: false, error: err.message }); }
+  }
+  if (pathname === '/api/logout') {
+    const tok = sessionToken_(req);
+    if (tok) sessions.delete(tok);
+    return sendJson(res, 200, { ok: true, data: { signedOut: true } });
+  }
+  if (!validSession_(req)) {
+    return sendJson(res, 401, { ok: false, error: 'Please sign in to continue.' });
   }
 
   if (req.method === 'GET' && READ_ACTIONS[pathname]) {
@@ -291,6 +378,7 @@ server.listen(config.PORT, () => {
   console.log('   MBBS ACADEMIC RECORD SHEET - Physiology Dept.');
   console.log('   Open the app:        http://localhost:' + config.PORT);
   console.log('   Apps Script URL:     ' + (isConfigured() ? config.APPS_SCRIPT_URL : 'NOT CONFIGURED - edit config.js'));
+  console.log('   Sign-in ID:          ' + config.LOGIN_ID);
   console.log('   Stop the server:     Ctrl + C');
   console.log('==========================================================');
 });

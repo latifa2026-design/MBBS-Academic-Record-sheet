@@ -8,6 +8,24 @@
 </head>
 <body>
 
+<!-- ============ SIGN-IN GATE ============ -->
+<div id="loginGate" class="login-gate">
+  <form id="loginForm" class="login-box" autocomplete="on">
+    <div class="login-logo">&#129658;</div>
+    <h1>MBBS Academic Record Sheet</h1>
+    <p class="login-sub">Physiology Department &middot; sign in to continue</p>
+    <label>ID
+      <input id="loginId" type="text" autocomplete="username" spellcheck="false" placeholder="Enter your ID" required />
+    </label>
+    <label>Password
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+    </label>
+    <p id="loginError" class="login-error hidden"></p>
+    <button id="loginSubmit" class="btn primary login-btn" type="submit">Sign in</button>
+    <p class="login-foot">Authorised users only &mdash; all changes are recorded in the Google Sheet.</p>
+  </form>
+</div>
+
 <header class="topbar">
   <div class="brand">
     <div class="logo">&#129658;</div>
@@ -19,6 +37,7 @@
   <div class="topbar-right">
     <span id="dbStatus" class="status-dot offline">&#9679; connecting&hellip;</span>
     <button id="btnRefresh" class="btn ghost" title="Reload all data from the Google Sheet">&#10227; Refresh</button>
+    <button id="btnLogout" class="btn ghost" title="End this session and return to the login screen">&#128682; Sign out</button>
   </div>
 </header>
 

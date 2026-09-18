@@ -224,5 +224,37 @@ td.empty, .empty { color: var(--muted); text-align: center; padding: 18px; }
   main { padding: 12px; }
   .att-row { grid-template-columns: 70px 1fr 1fr 60px; }
   .topbar h1 { font-size: 16px; }
+  .login-box { padding: 24px 18px 18px; }
 }
+
+/* ---------- Sign-in gate ---------- */
+.login-gate {
+  position: fixed; inset: 0; z-index: 500;
+  background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 55%, #2c8fd0 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+.login-gate.hidden { display: none; }
+.login-box {
+  background: var(--card); border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(6, 30, 54, 0.45);
+  width: min(400px, 94vw); padding: 30px 30px 22px; text-align: center;
+}
+.login-logo { font-size: 40px; line-height: 1; margin-bottom: 8px; }
+.login-box h1 { margin: 0; font-size: 19px; color: var(--blue-dark); }
+.login-sub { margin: 4px 0 20px; font-size: 13px; color: var(--muted); }
+.login-box label {
+  display: block; text-align: left; margin-bottom: 14px;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.login-box input { width: 100%; margin-top: 5px; font-size: 15px; }
+.login-error {
+  display: block; text-align: left; margin: 0 0 14px;
+  background: var(--red-bg); color: var(--red);
+  font-size: 13px; border-radius: 8px; padding: 8px 10px;
+}
+.login-btn { width: 100%; padding: 11px; font-size: 15px; font-weight: 600; margin-top: 2px; }
+.login-btn[disabled] { opacity: 0.7; cursor: wait; }
+.login-foot { margin: 14px 0 0; font-size: 12px; color: var(--muted); }
 

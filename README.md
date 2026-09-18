@@ -63,8 +63,25 @@ Browser (HTML/CSS/JS)  →  Node.js server (server.js, port 3000)  →  Google A
 
 ---
 
+## Sign-in (login) gate
+
+The app is protected by a login screen. Sign in with:
+
+| Field | Value |
+|---|---|
+| **ID** | `Academic Record of students` |
+| **Password** | `Universal2026##` |
+
+- The credentials are verified by the **Node server** (`POST /api/login`) — not just in the browser — and every data endpoint (`/api/students`, `/api/pending`, …) rejects requests without a valid session token, so the data cannot be reached without signing in.
+- A session lasts **12 hours** (per browser tab) or until you press **Sign out**; restarting the Node server ends all sessions and everyone signs in again.
+- After **8 failed attempts from one IP within 15 minutes** further attempts are blocked for a few minutes.
+- To change the credentials edit `LOGIN_ID` / `LOGIN_PASSWORD` in `config.js` (or set the `LOGIN_ID` / `LOGIN_PASSWORD` environment variables) and restart the server.
+
+---
+
 ## How to use
 
+0. **Sign in** — open the app and enter the ID + password (see *Sign-in gate* above).
 1. **Students tab** — add students (roll, name, year, session). Every new student automatically gets all **47 items** seeded as *Pending*.
 2. **Pending Items tab** — pick a student; click any item chip to cycle **Pending → Done → Exempted → Pending** ("Done" stamps today's date). Progress bars show card/term completion. *Re-seed* adds any missing item rows.
 3. **Card Final tab** — pick a student, enter exam date, marks obtained and full marks (default 100) per card; % and grade (A+ … F) are calculated on save. Saving again for the same card **updates** the existing result.

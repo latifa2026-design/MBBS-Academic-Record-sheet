@@ -17,4 +17,10 @@ module.exports = {
 
   // Shared secret between Node.js and Google Apps Script (keep them identical)
   TOKEN: process.env.APPS_SCRIPT_TOKEN || 'mbbs-record-2026',
+
+  // ---- Sign-in gate (login screen) ----
+  // Users must enter this ID + password to open the app.
+  // Override with the LOGIN_ID / LOGIN_PASSWORD environment variables.
+  LOGIN_ID: process.env.LOGIN_ID || 'Academic Record of students',
+  LOGIN_PASSWORD: process.env.LOGIN_PASSWORD || 'Universal2026##',
 };

@@ -111,13 +111,93 @@ function closeConfirm(result) {
   resolve(result);
 }
 
+/* ============================================================
+   AUTH — sign-in gate
+   Credentials are validated by the Node server (/api/login);
+   the session token is kept per browser tab (sessionStorage)
+   and sent with every API call as the X-Auth-Token header.
+   ============================================================ */
+const AUTH_TOKEN_KEY = 'mbrs.auth.token';
+const auth = { token: null };
+try { auth.token = sessionStorage.getItem(AUTH_TOKEN_KEY) || null; } catch (e) { /* storage blocked */ }
+
+function authHeaders() {
+  return auth.token ? { 'X-Auth-Token': auth.token } : {};
+}
+
+function showLogin(msg) {
+  auth.token = null;
+  try { sessionStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
+  const err = $('#loginError');
+  if (msg) { err.textContent = msg; err.classList.remove('hidden'); }
+  else err.classList.add('hidden');
+  $('#loginGate').classList.remove('hidden');
+  setTimeout(() => { try { $('#loginId').focus(); } catch (e) { /* ignore */ } }, 60);
+}
+
+function enterApp() {
+  $('#loginGate').classList.add('hidden');
+  loadAll();
+}
+
+async function onLoginSubmit(e) {
+  e.preventDefault();
+  const id = $('#loginId').value.trim();
+  const password = $('#loginPassword').value;
+  if (!id || !password) return showLogin('Please enter both ID and password.');
+  const btn = $('#loginSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Signing in\u2026';
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, password: password }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Sign-in failed.');
+    auth.token = json.data.token;
+    try { sessionStorage.setItem(AUTH_TOKEN_KEY, auth.token); } catch (err2) { /* ignore */ }
+    $('#loginPassword').value = '';
+    enterApp();
+  } catch (err) {
+    showLogin(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+async function onLogout() {
+  try { await fetch('/api/logout', { method: 'POST', headers: authHeaders() }); } catch (e) { /* ignore */ }
+  showLogin('You have been signed out.');
+}
+
+/* The server answered 401 — the session expired or the server restarted. */
+function handleAuthError() {
+  showLogin('Session expired \u2014 please sign in again.');
+}
+
+function initAuth() {
+  $('#loginForm').addEventListener('submit', onLoginSubmit);
+  $('#btnLogout').addEventListener('click', onLogout);
+  if (auth.token) enterApp();
+  else showLogin();
+}
+
 /* ---------- API ---------- */
 async function apiGet(path) {
   /* _ts cache-buster: never let a browser/proxy cache answer with a stale
      list — a deleted row must disappear immediately. The Node server strips
      the query string before routing, so this is invisible to the API. */
-  const res = await fetch(path + (path.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now());
+  const res = await fetch(path + (path.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now(), { headers: authHeaders() });
   const json = await res.json();
+  if (res.status === 401) {
+    handleAuthError();
+    const err = new Error(json.error || 'Please sign in to continue.');
+    err.authRequired = true;
+    throw err;
+  }
   if (!json.ok) throw new Error(json.error || 'Request failed');
   return json.data;
 }
@@ -125,10 +205,16 @@ async function apiGet(path) {
 async function apiPost(path, data) {
   const res = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
     body: JSON.stringify(data || {}),
   });
   const json = await res.json();
+  if (res.status === 401) {
+    handleAuthError();
+    const err = new Error(json.error || 'Please sign in to continue.');
+    err.authRequired = true;
+    throw err;
+  }
   if (!json.ok) throw new Error(json.error || 'Request failed');
   return json.data;
 }
@@ -140,7 +226,10 @@ async function apiGetRetry(path, tries = 3) {
   let lastErr = null;
   for (let i = 0; i < tries; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, 800 * i));
-    try { return await apiGet(path); } catch (err) { lastErr = err; }
+    try { return await apiGet(path); } catch (err) {
+      if (err && err.authRequired) throw err;   // 401 — do not retry, show the gate
+      lastErr = err;
+    }
   }
   throw lastErr;
 }
@@ -166,6 +255,7 @@ async function loadAll() {
     setDbStatus('online', 'connected to Google Sheet');
     renderAll();
   } catch (err) {
+    if (err && err.authRequired) return;   // login gate already shown
     setDbStatus('offline', 'offline');
     renderAll();
     toast('\u26A0 ' + err.message, 'error');
@@ -946,7 +1036,7 @@ function wireEvents() {
 }
 
 wireEvents();
-loadAll();
+initAuth();
 
 
 
