@@ -328,14 +328,13 @@ function renderStudents() {
       '<td>' + esc(s.Year) + '</td>' +
       '<td>' + (pend > 0 ? '<span class="badge warn">' + pend + ' pending</span>' : '<span class="badge ok">none</span>') + '</td>' +
       '<td>' + esc(s.Session || '\u2014') + '</td>' +
-      '<td>' + (pend > 0 ? '<span class="badge warn">' + pend + ' pending</span>' : '<span class="badge ok">all done</span>') + '</td>' +
       '<td>' + esc(s.Status || 'Active') + '</td>' +
       '<td>' +
         '<button class="btn sm primary" data-act="open" data-id="' + esc(s.ID) + '">Items</button> ' +
         '<button class="btn sm" data-act="edit" data-id="' + esc(s.ID) + '">Edit</button> ' +
         '<button class="btn sm danger" data-act="del" data-id="' + esc(s.ID) + '">Del</button>' +
       '</td></tr>';
-  }).join('') || '<tr><td colspan="8" class="empty">' +
+  }).join('') || '<tr><td colspan="7" class="empty">' +
     (state.students.length
       ? 'No students match the current search / year filter.'
       : 'No students yet \u2014 add the first one above.') +
